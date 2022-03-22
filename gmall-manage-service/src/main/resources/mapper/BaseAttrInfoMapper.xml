@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper SYSTEM "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.my.gmall.manage.mapper.BaseAttrInfoMapper">
+    <resultMap id="baseAttrInfoMap" type="com.my.gmall.bean.BaseAttrInfo" autoMapping="true">
+        <id property="id" column="id"></id>
+            <!-- 设置 atuoMapping= true后，普通字段的映射 不用写了            -->
+<!--        <result property="attrName" column="attr_name"></result>-->
+<!--        <result property="catalog3Id" column="catalog3_id"></result>-->
+        <collection property="attrValueList" ofType="com.my.gmall.bean.BaseAttrValue" autoMapping="true">
+            <id property="id" column="value_id"></id>
+<!--            <result property="valueName" column="value_name"></result>-->
+<!--            <result property="attrId" column="attr_id"></result>-->
+        </collection>
+    </resultMap>
+
+    <!--public List<BaseAttrInfo> getBaseAttrInfoListByCatalog3Id(String catalog3Id);-->
+    <select id="getBaseAttrInfoListByCatalog3Id" resultMap="baseAttrInfoMap">
+        SELECT
+            attr_info.id,
+            attr_info.attr_name,
+            attr_info.catalog3_id,
+            attr_value.id value_id,
+            attr_value.value_name,
+            attr_value.attr_id
+        FROM
+            base_attr_info attr_info
+                inner JOIN base_attr_value attr_value ON attr_info.id = attr_value.attr_id
+        WHERE
+            attr_info.catalog3_id = #{catalog3Id};
+    </select>
+</mapper>
