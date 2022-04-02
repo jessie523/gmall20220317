@@ -15,6 +15,9 @@
         <module>../gmall-common-util</module>
         <module>../gmall-manage-web</module>
         <module>../gmall-manage-service</module>
+        <module>../gmall-item-web</module>
+        <module>../gmall-list-service</module>
+        <module>../gmall-list-web</module>
     </modules>
     <packaging>pom</packaging>
     <parent>
@@ -37,7 +40,7 @@
         <jsoup.version>1.11.3</jsoup.version>
         <httpclient.version>4.5.6</httpclient.version>
         <commons-lang3.version>3.7</commons-lang3.version>
-        <mapper-starter.version>1.2.3</mapper-starter.version>
+        <mapper-starter.version>4.2.1</mapper-starter.version>
         <jedis.version>2.9.0</jedis.version>
         <jest.version>5.3.3</jest.version>
         <jna.version>4.5.1</jna.version>
@@ -158,5 +161,8 @@
                 <version>${mysql.version}</version>
             </dependency>
         </dependencies>
+
     </dependencyManagement>
+
+
 </project>

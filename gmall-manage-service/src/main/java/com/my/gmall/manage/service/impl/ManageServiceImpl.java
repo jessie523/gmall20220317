@@ -1,10 +1,16 @@
 package com.my.gmall.manage.service.impl;
 
 import com.alibaba.dubbo.config.annotation.Service;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.my.gmall.ManageService;
 import com.my.gmall.bean.*;
+import com.my.gmall.config.RedisUtil;
+import com.my.gmall.manage.constant.ManageConst;
 import com.my.gmall.manage.mapper.*;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import redis.clients.jedis.Jedis;
 
 import java.util.List;
 
@@ -51,7 +57,14 @@ public class ManageServiceImpl implements ManageService {
     @Autowired
     private SkuImageMapper skuImageMapper;
 
+    @Autowired
+    private SkuSaleAttrValueMapper skuSaleAttrValueMapper;
 
+    @Autowired
+    private SkuAttrValueMapper skuAttrValueMapper;
+
+    @Autowired
+    private RedisUtil redisUtil;
 
     @Override
     public List<BaseCatalog1> getCatalog1() {
@@ -228,5 +241,104 @@ public class ManageServiceImpl implements ManageService {
         //3、sku_attr_value
 
         //4、skuSaleAttrValue
+    }
+
+    /**
+     * 测试devtool使用
+     * @param skuId
+     * @return
+     */
+//    public SkuInfo getSkuInfo(String skuId){
+//        SkuInfo skuInfo = getSkuInfoDB(skuId);
+//        return skuInfo;
+//    }
+
+
+    /**
+     * 从缓存中获取skuInfo
+     * @param skuId
+     * @return
+     */
+    @Override
+    public SkuInfo getSkuInfo(String skuId) {
+
+        //获取redis
+        Jedis jedis = redisUtil.getJedis();
+        SkuInfo skuInfo = null;
+        String skuKey = ManageConst.SKUKEY_PREFIX+skuId+ManageConst.SKUKEY_SUFFIX;
+        String skuJson = jedis.get(skuKey);
+        if(skuJson == null || skuJson.length()==0){
+            //如果查找的key为null,会造成大量用户访问数据 造成 缓存击穿
+            //生成锁
+            String skuLockKey = ManageConst.SKUKEY_PREFIX+skuId+ManageConst.SKULOCK_SUFFIX;
+            String lockKey = jedis.set(skuLockKey,"good","NX","PX",ManageConst.SKULOCK_EXPIRE_PX);
+            if("OK".equals(lockKey)){
+                //拿到锁后，查询数据库，
+                skuInfo = getSkuInfoDB(skuId);
+                String skuString = JSON.toJSONString(skuInfo);
+                //然后更新redis
+                jedis.setex(skuKey,ManageConst.SKULOCK_EXPIRE_PX,skuString);
+            }else{
+                //没拿到锁的 怎么办？
+                //睡一会
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                //来个自旋
+                return getSkuInfo(skuId);
+            }
+
+        }else{
+            //如果有数据，直接将字符串转换为对象，返回
+             skuInfo = JSON.parseObject(skuJson, SkuInfo.class);
+        }
+
+        jedis.close();
+        return skuInfo;
+    }
+
+    /**
+     * 从数据库中获取查询skuInfo
+     * @param skuId
+     * @return
+     */
+    public SkuInfo getSkuInfoDB(String skuId) {
+        //skuInfo基本信息
+        SkuInfo skuInfo = skuInfoMapper.selectByPrimaryKey(skuId);
+        //skuImage
+        SkuImage skuImage = new SkuImage();
+        skuImage.setSkuId(skuId);
+        List<SkuImage> skuImages = skuImageMapper.select(skuImage);
+        skuInfo.setSkuImageList(skuImages);
+
+        //平台属性
+        SkuAttrValue skuAttrValue = new SkuAttrValue();
+        skuAttrValue.setSkuId(skuId);
+        List<SkuAttrValue> skuAttrList = skuAttrValueMapper.select(skuAttrValue);
+        skuInfo.setSkuAttrValueList(skuAttrList);
+        return skuInfo;
+    }
+
+    @Override
+    public List<SpuSaleAttr> getSpuSaleAttrListCheckBySku(SkuInfo skuInfo) {
+
+        List<SpuSaleAttr> spuSaleAttrList = spuSaleAttrMapper.selectSpuSaleAttrListCheckBySku(skuInfo.getId(), skuInfo.getSpuId());
+        return spuSaleAttrList;
+    }
+
+    @Override
+    public List<SkuSaleAttrValue> getSkuSaleAttrValueListBySpu(String spuId) {
+        return skuSaleAttrValueMapper.getSkuSaleAttrValueListBySpu(spuId);
+    }
+
+    @Override
+    public List<BaseAttrInfo> getAttrList(List<String> attrValueIdList) {
+
+        String attrValueIds = StringUtils.join(attrValueIdList,",");
+        List<BaseAttrInfo> baseAttrInfoList =  baseAttrInfoMapper.selectAttrInfoListByIds(attrValueIds);
+        return baseAttrInfoList;
     }
 }

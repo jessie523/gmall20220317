@@ -38,4 +38,13 @@ public interface ManageService {
     List<SpuSaleAttr> getSpuSaleAttrList(String spuId);
 
     void saveSkuInfo(SkuInfo skuInfo);
+
+    SkuInfo getSkuInfo(String skuId);
+//    显示spu全部销售属性，同时锁定sku的销售属性
+    List<SpuSaleAttr> getSpuSaleAttrListCheckBySku(SkuInfo skuInfo);
+
+    //显示spuId下所有 能够组合成的sku
+    public List<SkuSaleAttrValue> getSkuSaleAttrValueListBySpu (String spuId);
+    //根据 平台属性值id列表，获取平台属性（id 和 value）
+    List<BaseAttrInfo> getAttrList(List<String> attrValueIdList);
 }
