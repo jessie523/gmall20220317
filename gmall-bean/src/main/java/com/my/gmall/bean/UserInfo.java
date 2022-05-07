@@ -4,6 +4,7 @@ import lombok.Data;
 
 import javax.persistence.Column;
 import javax.persistence.Id;
+import java.io.Serializable;
 
 /**
  * author:zxy
@@ -11,7 +12,7 @@ import javax.persistence.Id;
  * @create 2022-03-17 15:56
  */
 @Data
-public class UserInfo {
+public class UserInfo implements Serializable {
     @Id
     @Column
     private String id;
